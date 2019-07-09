@@ -1,5 +1,68 @@
 cALLiX - c Adaptive Linear Learned indeX
 
+Current Writeup -- 7/9/19
+
+Implemented so Far:
+
+Linear Model class (y = ax + b), returns and allows for changes to a and b and will return a y when given an x. Also, when given a vector of keys and a vector of indices, will construct a least-squares regression line O(2N) LinearModel.
+
+MinMaxTransformer class, will return a y that is scaled based on an old minimum - old maximum as a value either [0,1] or to a new minimum and maximum.
+
+To Implement:
+
+Gapped Array:
+
+I was largely focused on following along with what the ALEX paper does, with a few additions. The Gapped Array is structured as a binary tree, where only the leaf nodes contain the arrays while all internal nodes contain the linear model that determines which leaf to assign a key to or return a key from. The root node contains the initial constructor (so a "cold-start") as well as methods to collect diagnostic information from all its children nodes.
+
+GappedArray::Insert:
+
+If the inserted key increases the density beyond the maximum density of 0.5 (tunable) then the array needs to be split into two child gapped arrays (see GappedArray::Expand).
+
+Otherwise, the original predicted index of where to insert is based on the linear model. If the index is empty, and the next occupied index is a higher key and the previous occupied index is a lower key, then we're done with the insert.
+
+If the predicted index violates any of those conditions, than an exponential search is conducted to find the actual proper position to insert the key, starting with the predicted index. This will result in either finding an unoccupied position, or an occupied position.
+
+If unoccupied, store the key and we're done. If occupied, need to shift keys in the direction of the nearest gap so that the space becomes unoccupied, then store the key in that location.
+
+If the key happens to be lower than the lowest minimum, or higher than the highest maximum, this is fine. We just shift all the occupied keys from that edge up or down respectively and store this key as the new minimum or maximum. This accounts for any shortcomings of the model, and after enough keys are added to the ends and the density goes high enough, the GappedArray::Expand operation should account for this shift. If these keys however are just outliers, ideally the Least Squares Regression should be robust enough to handle this.
+
+GappedArray::Expand
+
+This is where the Learned part comes into play. When it is determined that the array has reached its maximum density, then we locate the median key/index pair. We construct 4 vectors using sampling (not random sampling, but stratified like every 100th value, minimum and maximum inclusive). Two vectors (left child) will be the keys and indexes those keys occupy array[0] up to the array[median-1]. The other two vectors will be the keys and occupied indexes of median to array[array.size()-1].
+
+Then we apply  a MinMaxTransformation to just the indexes, to fit the new child gapped arrays. This is important because it allows us to account for skew, and is mathematically permissible because it's just scaling (linear transformation) in the end.
+
+Then we construct two new LinearModels for each half of the parent array, based on the keys and transformed y values.
+
+Using these two new models, we assign all the values from each half of the parent gapped-array to the new children gapped arrays, then delete the parent gapped array.
+
+At this point, any future insert/lookup/delete operations will run through the parent's linear model, which will determine which of the two child linear models the key should next run through, which will eventually determine which index the key should be stored in.
+
+GappedArray::Lookup
+
+Key -> root linearModel -> internal1 linear model -> internal2 linear model -> ... -> leaf linear model -> Array. Find the predicted spot for the key. If it is empty and is in the proper position, then we know the key does not exist. Otherwise, exponential search to find the position where the key is actually supposed to be to determine if the key exists there or not.
+
+GappedArray::Delete
+
+This is the part that goes beyond the original paper. My idea is that as keys are deleted, we do a quick comparison of the density between the two sibling nodes. If the siblings combined are a lower density than a threshold (say .15) then we calculate the ratio between the two densities, which determines how many key/index pairs to sample from each child array. We sample these pairs, do a min max transform again, determine a new linear model for the parent node. We then store all the keys from the child node into a new array stored in the parent, and afterwards delete the child nodes.
+
+GappedArray::Compression
+
+Another potential difference, in that perhaps we can collapse some of the internal nodes, and combine linear models into cases divided by key boundaries. This allows us to reduce the number of calculations needed. This is not what I'm originally planning on implementing but could be useful for the future.
+
+Tuneable Parameters:
+
+Size of each Array: Smaller arrays allow for quicker adaptation to the distribution, while larger arrays reduce the number of expensive Expand operations. Maybe this can be changed based on the key distribution, as in if the key distribution is largely stable then the child arrays can safely become larger and larger with each generation.
+
+Density: Obvious tuneable parameter, with tradeoff between size and speed. Also, larger more empty arrays will have less collisions, but could also be poorer approximations of
+
+Number of children to split into: This one is interesting, because it goes into 50+ years of work in approximating a curve using lines. There are probably better algorithms than simply splitting an array into two children. Maybe initially the array can be split into 3, 4, 5, 10 children, but as the distribution becomes more stable we'd split them into less children?
+
+Number of key/index pairs to sample to determine new LinearModels: Right now I figure around 20 key/index pairs, but this is obviously changeable, with more key/index pairs leading to more accurate LinearModels but taking a longer time to construct. I was looking into the math behind Empirical CDF (ECDF) to figure out how many samples we'd need to properly approximate the CDF function.
+
+
+
+Orig Writeup --
 Based on ALEX. The idea is to store (32-bit)key, <T>value pairs in Gapped Arrays 
 that adaptively grow based on the distribution of the keys.
 To determine which Gapped Array and which index in the Gapped Array to store the key,
