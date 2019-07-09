@@ -65,7 +65,8 @@ Number of key/index pairs to sample to determine new LinearModels: Right now I f
 
 
 
-Orig Writeup --
+Older Writeups --
+
 Based on ALEX. The idea is to store (32-bit)key, <T>value pairs in Gapped Arrays 
 that adaptively grow based on the distribution of the keys.
 To determine which Gapped Array and which index in the Gapped Array to store the key,
