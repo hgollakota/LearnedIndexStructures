@@ -1,6 +1,10 @@
 cALLiX - c Adaptive Linear Learned indeX
 
-Current Writeup -- 7/9/19
+Current Writeup -- 7/11/19
+
+Made progress on GappedArray class. Still need to finish expand() as well as run some tests.
+
+7/9/19
 
 Implemented so Far:
 
