@@ -4,6 +4,8 @@ Current Writeup -- 7/11/19
 
 Made progress on GappedArray class. Still need to finish expand() as well as run some tests.
 
+Older Writeups --
+
 7/9/19
 
 Implemented so Far:
@@ -69,7 +71,7 @@ Number of key/index pairs to sample to determine new LinearModels: Right now I f
 
 
 
-Older Writeups --
+
 
 Based on ALEX. The idea is to store (32-bit)key, <T>value pairs in Gapped Arrays 
 that adaptively grow based on the distribution of the keys.
