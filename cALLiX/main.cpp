@@ -1,12 +1,11 @@
 #include <iostream>
 #include <vector>
 #include "LinearModel.h"
+#include "GappedArray.h"
 
 using namespace std;
-const size_t ARR_SIZE = 4096;
-const double DENSITY = 0.5;
 
-
+#pragma once
 int main() {
 	vector<double> samplex;
 	vector<int> sampley;
