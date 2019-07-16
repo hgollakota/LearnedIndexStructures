@@ -59,21 +59,22 @@ int main() {
 	//ga.insert(24.5);
 
 
-	LinearModel lm = LinearModel(0.5, 0.0);
+	LinearModel lm = LinearModel(1.0, 0.0);
 	GappedArray ga = GappedArray(lm, 0.0);
 	double lb = 0;
-	double ub = 4096;
+	double ub = 4095;
 	std::uniform_real_distribution<double> unif(lb, ub);
 	std::default_random_engine re;
 	vector<double> vect;
-	while (ga.testOrder() && vect.size() < 1000) {
+	while (vect.size() < 8192) {
 		double d = unif(re);
 		vect.push_back(d);
 		ga.insert(d);
 	}
-	ga.print("output2.txt");
+
+	ga.print("output5.txt");
 	ofstream outfile;
-	outfile.open("input2.txt", ios::out);
+	outfile.open("input5.txt", ios::out | ofstream::app);
 	for (int i = 0; i < vect.size(); i++) {
 		outfile << vect[i] << "\n";
 	}

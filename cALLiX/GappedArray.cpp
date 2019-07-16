@@ -33,8 +33,9 @@ void GappedArray::insert(double key)
 										
     /*can safely assume actPos is either the key immediately larger than key, the max position, the minimum position
 	or a gap in sorted order*/
-		
+
 	/*this part is a MESS but it seems to work*/
+	/*either inserts key or makes gap then inserts key*/
 	if (!(*keysb)[actPos]) {
 		(*keys)[actPos] = key;
 		(*keysb)[actPos].flip();
@@ -119,9 +120,75 @@ void GappedArray::insert(double key)
 	if (density > 0.5) expand();
 }
 
+void GappedArray::expand()
+{
+	vector<double> leftx;
+	vector<int> lefty;
+	vector<double> rightx;
+	vector<int> righty;
 
+	int lmin;
+	int lmax;
+	int rmin;
+	int rmax;
 
+	int m = (*keysb).count() / 2; //number
+	int i = 0;
+	int j = 0;
+	while (i < (*keysb).size()) {
+		if ((*keysb)[i]) {
+			j++;
+			if (j == 1) { lmin = i; }
+			else if (j + 1 == m) { lmax = i; }
+			else if (j == m) { rmin = i; MEDIND = i; }
+			else if (j == (*keysb).count()) { rmax = i; }
 
+			if (j % 20 == 1) { //approx 5% of keys
+				if (j < m) {
+					leftx.push_back((*keys)[i]);
+					lefty.push_back(i);
+				}
+				else {
+					rightx.push_back((*keys)[i]);
+					righty.push_back(i);
+				}
+			}
+		}
+		i++;
+	}
+
+	MinMaxTransformer lmmt = MinMaxTransformer(lmin, lmax, 0, MAXIND);
+	MinMaxTransformer rmmt = MinMaxTransformer(rmin, rmax, 0, MAXIND);
+
+	vector<int> lefty_t;
+	vector<int> righty_t;
+
+	for (int k = 0; k < lefty.size(); k++) { lefty_t.push_back((int)lmmt.y(lefty[k])); }
+	for (int k = 0; k < righty.size(); k++) { righty_t.push_back((int)rmmt.y(righty[k])); }
+
+	LinearModel llm = LinearModel(leftx, lefty_t);
+	LinearModel rlm = LinearModel(rightx, righty_t);
+
+	left = new GappedArray(llm, (*keys)[lmin]);
+	right = new GappedArray(rlm, (*keys)[rmin]);
+
+	for (int k = 0; k < (*keys).size(); k++) {
+		if ((*keysb)[k]) {
+			if (lm.y((*keys)[k]) < MEDIND) {
+				left->insert((*keys)[k]);
+			}
+			else {
+				right->insert((*keys)[k]);
+			}
+		}
+	}
+
+	free(keys);
+	free(keysb);
+	density = 0.0;
+	isLeaf = false;
+	return;
+}
 
 int GappedArray::adjPos(double key, int initPos)
 {
@@ -160,8 +227,6 @@ int GappedArray::adjPos(double key, int initPos)
 	}
 	return actPos;
 }
-
-
 
 int GappedArray::binSearch(int lb, int ub, double key)
 {
@@ -288,7 +353,7 @@ void GappedArray::print(string outputloc)
 		return;
 	}
 	ofstream outfile;// declaration of file pointer named outfile
-	outfile.open(outputloc, ios::out); // opens file named "filename" for output
+	outfile.open(outputloc, ios::out | ofstream::app); // opens file named "filename" for output
 
 	
 	outfile << "Gapped Array Output\n";
@@ -323,6 +388,9 @@ void GappedArray::print(string outputloc)
 
 bool GappedArray::testOrder()
 {
+	if (!isLeaf) {
+		return left->testOrder() && right->testOrder();
+	}
 	for (int i = 0; i < MAXIND; i++) {
 		if ((*keys)[i] > (*keys)[i + 1]) return false;
 	}
