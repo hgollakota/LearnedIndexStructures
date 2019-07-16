@@ -7,9 +7,8 @@ Tests inserting at beginning and ends of arrays seem to be working.
 
 I think part of the problem is I'm getting lost in all the IF..ELSE statements that could be a LOT cleaner
 
-
-
-Older Writeups --
+insert is working! I needed to change binary search to return the lowerbound as opposed to the midpoint.
+on to expand()
 
 7/9/19
 
