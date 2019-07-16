@@ -10,6 +10,8 @@ I think part of the problem is I'm getting lost in all the IF..ELSE statements t
 insert is working! I needed to change binary search to return the lowerbound as opposed to the midpoint.
 on to expand()
 
+EXPAND IS WORKING!!! I'm so excited. uncommented code in main right now generates new data to test with.
+
 7/9/19
 
 Implemented so Far:
