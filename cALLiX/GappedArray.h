@@ -20,12 +20,9 @@ class GappedArray
 	int MEDIND;
 	int MAXIND;
 	LinearModel lm;
-	//array<double, 4096> keys;
-	//bitset<4096> keysb;
 	double density;
 	int numKeys;
 	int adjPos(double key, int initPos);
-	void makeGap(int pos, double key);
 	int binSearch(int lb, int ub, double key);
 	void expand();
 //	void contract();

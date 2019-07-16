@@ -30,12 +30,11 @@ void GappedArray::insert(double key)
 	/*check if in sorted order*/
 	int actPos = adjPos(key, initPos);
 	if ((*keys)[actPos] == key) return; // key already in keys
-	/*can safely assume actPos is either the key immediately larger than key, the max position, the minimum position
+										
+    /*can safely assume actPos is either the key immediately larger than key, the max position, the minimum position
 	or a gap in sorted order*/
-
-	
-
-
+		
+	/*this part is a MESS but it seems to work*/
 	if (!(*keysb)[actPos]) {
 		(*keys)[actPos] = key;
 		(*keysb)[actPos].flip();
@@ -108,15 +107,16 @@ void GappedArray::insert(double key)
 	}
 
 
-	int j = actPos;
 	/*makes sure key is repeated until next key*/
+	int j = actPos;
 	while (j+1 <= MAXIND && (*keys)[j + 1] < (*keys)[j]) {
 		(*keys)[j + 1] = (*keys)[j];
 		j++;
 	}
 
-
-
+	numKeys = (*keysb).count();
+	density = (double)(*keysb).count() / (*keysb).size();
+	if (density > 0.5) expand();
 }
 
 
@@ -163,103 +163,18 @@ int GappedArray::adjPos(double key, int initPos)
 
 
 
-//void GappedArray::insert(double key)
-//{
-//	/*If GappedArray has already been expanded, insert into appropriate child instead*/
-//	if (!isLeaf) {
-//		if (lm.y(key) < medianIndex) { left->insert(key); }
-//		else { right->insert(key); }
-//		return;
-//	}
-//
-//	int initPos = (int)lm.y(key); //initial predicted index
-//	/*Adjusts the position to appropriate index if necessary*/
-//	/* FIRST - CHECK IF IN CORRECT POSITION ALREADY*/
-//	int actPos = adjPos(key, initPos);
-//
-//	if ((*keys)[actPos] == key) return; //key is already in array
-//
-//	/*If the position to insert is not a gap, makes a gap*/
-//	if (keysb->test(actPos)) makeGap(actPos);
-//
-//	/*Actually insert key*/
-//	int i = actPos;
-//	while(i < keysb->size() && !keysb->test(i)) {
-//		(*keys)[i] = key;
-//		i++;
-//	}
-//
-//	keysb->flip(actPos);
-//
-//	density = (double)keysb->count() / keysb->size();
-//	if (density >= 0.5) expand();
-//}
-//
-//int GappedArray::adjPos(double key, int initPos)
-//{
-//	if (initPos < 0) initPos = 0;
-//	if (initPos > keysb->size() - 1) initPos = keysb->size() - 1;
-//	if ((*keys)[initPos] == key) return initPos; //key in array
-//	int result = -1;
-//	/*Exponential search if key is less than key at predicted index location*/
-//	if ((*keys)[initPos] > key) {
-//		int b = 2;
-//		while (initPos - b >= 0 && (*keys)[initPos - b] > key) {b *= 2;}
-//		if (initPos - b < 0) result = binSearch(0, initPos - b / 2, key);
-//		else result = binSearch(initPos - b, initPos - b / 2, key);
-//	}
-//	/*Exponential search if key is greater than key at predicted index location*/
-//	else if ((*keys)[initPos] < key) {
-//		int b = 2;
-//		while (initPos + b < keys->size() && (*keys)[initPos + b] < key) { b *= 2; }
-//		if (initPos + b > keys->size() - 1) result = binSearch(initPos + b / 2, keys->size() - 1, key);
-//		else result = binSearch(initPos + b / 2, initPos + b, key);
-//	}
-//	if (result < 0) result = 0;
-//	if (result > keysb->size() - 1) result = keysb->size() - 1;
-//	return result;
-//}
-//
 int GappedArray::binSearch(int lb, int ub, double key)
 {
 	while (lb <= ub) {
+		if ((*keys)[lb] == (*keys)[ub]) break;
 		int m = lb + (ub - lb) / 2;
-		if ((*keys)[lb] == (*keys)[ub]) return m;
 		if (key < (*keys)[m]) ub = m - 1;
 		else if (key > (*keys)[m]) lb = m + 1;
 		else return m;
 	}
 	return lb;
 }
-//
-//void GappedArray::makeGap(int pos)
-//{
-//	int lo = pos;
-//	int hi = pos;
-//
-//	while (keysb->test(lo) && keysb->test(hi)) {
-//		if (lo > 0) lo--;
-//		if (hi < keysb->size() - 1) hi++;
-//	}
-//	if (!keysb->test(hi)) {
-//		for (int i = hi; i > pos; i--) {
-//			(*keys)[i] = (*keys)[i - 1];
-//		}
-//		keysb->flip(hi);
-//		keysb->flip(pos);
-//		return;
-//	}
-//	if (!keysb->test(lo)) {
-//		for (int i = lo; i < pos; i++) {
-//			(*keys)[i] = (*keys)[i + 1];
-//		}
-//		keysb->flip(lo);
-//		keysb->flip(pos);
-//		return;
-//	}
-//}
-//
-//
+
 //void GappedArray::expand()
 //{
 //	vector<double> leftx;
@@ -385,9 +300,12 @@ void GappedArray::print(string outputloc)
 	while (!(*keysb)[min]) min++;
 	while (!(*keysb)[max]) max--;
 
-
+	
 	outfile << "Min Key:\t" << fixed << (*keys)[min] << "\tMax Key:\t" << fixed << (*keys)[max] << "\n";
 	outfile << "Array in order:\t" << testOrder() << "\n";
+
+	outfile << "Number Keys:\t" << (*keysb).count() << "\n"; 
+
 
 	outfile << "Bitset:\t\t" << keysb->to_string() << "\n";
 	for (int i = 0; i < keys->size(); i++) {
