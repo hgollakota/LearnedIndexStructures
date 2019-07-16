@@ -3,6 +3,8 @@
 #include <deque>
 #include <bitset>
 #include "LinearModel.h"
+#include <fstream>
+#include <iostream>
 
 
 using namespace std;
@@ -15,27 +17,24 @@ class GappedArray
 	bool isLeaf;
 	GappedArray *left;
 	GappedArray *right;
-	int medianIndex;
+	int MEDIND;
+	int MAXIND;
 	LinearModel lm;
 	//array<double, 4096> keys;
 	//bitset<4096> keysb;
 	double density;
 	int numKeys;
 	int adjPos(double key, int initPos);
-	void makeGap(int pos);
+	void makeGap(int pos, double key);
 	int binSearch(int lb, int ub, double key);
 	void expand();
-	void contract();
+//	void contract();
 public:
 	GappedArray(LinearModel model, double minKey);
 	~GappedArray();
 	void insert(double key);
-	void remove(double key);
+//	void remove(double key);
 	bool lookup(double key);
-};
-
-class Root
-{
-
-
+	void print(string outputloc);
+	bool testOrder();
 };
