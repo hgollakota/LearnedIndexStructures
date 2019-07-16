@@ -1,8 +1,13 @@
 cALLiX - c Adaptive Linear Learned indeX
 
-Current Writeup -- 7/11/19
+Current Writeup -- 7/16/19
+Running tests on insert prior to reimplementing expand.
+Running main, generates output1.txt that identifies some of the keys that are out of order. Need to figure out why this is occurring. 
+Tests inserting at beginning and ends of arrays seem to be working.
 
-Made progress on GappedArray class. Still need to finish expand() as well as run some tests.
+I think part of the problem is I'm getting lost in all the IF..ELSE statements that could be a LOT cleaner
+
+
 
 Older Writeups --
 
