@@ -3,6 +3,7 @@
 #include <deque>
 #include <bitset>
 #include "LinearModel.h"
+#include "global.h"
 #include <fstream>
 #include <iostream>
 
@@ -12,8 +13,8 @@ using namespace std;
 #pragma once
 class GappedArray
 {
-	array<double, 4096> * keys;
-	bitset<4096> * keysb;
+	array<double, ARRSIZE> * keys;
+	bitset<ARRSIZE> * keysb;
 	bool isLeaf;
 	GappedArray *left;
 	GappedArray *right;
@@ -33,5 +34,6 @@ public:
 //	void remove(double key);
 	bool lookup(double key);
 	void print(string outputloc);
+	void printhead(string outputloc);
 	bool testOrder();
 };
