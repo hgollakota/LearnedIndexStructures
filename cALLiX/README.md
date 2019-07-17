@@ -1,6 +1,22 @@
 cALLiX - c Adaptive Linear Learned indeX
 
-Current Writeup -- 7/16/19
+Current Writeup -- 7/17/19
+
+Generated a million+-key normal distribution with mean 0 and stddeviation 100. Implemented a print(outfile) class which dumps "header" information about each gapped array as well as all the keys, positions, and bits for each entry in the array.
+
+printheader() on the other hand does the same thing but only prints the "header" information, which include the linear model for each gapped array, whether the array is in sorted order, its minimum and maximum keys, and the bitset (read from bottom to top!) I've been using printheader() once I determined that the arrays seem to consistently be in sorted order. The clusterwhoops of code that I've been using to find the appropriate location and make a gap is working as intended.
+
+For the million+-key example above, with a GA size of 4096 and a max density of 0.5, each array should contain ~1000 - 2000 keys. This would mean that the number of GAs (or leaves in the overall model) should be between 500-1000. The test resulted in 761. 
+
+I have implemented lookup(key), which according to the original paper is where a cALLiX should really shine with regards to speed. I still need to test lookup.
+
+I want to generate a nice visual graph of a non-standard cumulative distribution function, and show how the linear models of each cALLiX when bounded by its min-max keys create an approximation of the CDF.
+
+I need to learn more about static or constant or global variables in c++ - at first I want to be able to change the size of a GappedArray to different sizes than 4096, as well as change the maximum density from 0.5, as well as (might not be as crucial but could save time) change how many samples are collected from the GappedArray during expansion. 
+
+
+
+7/16/19
 Running tests on insert prior to reimplementing expand.
 Running main, generates output1.txt that identifies some of the keys that are out of order. Need to figure out why this is occurring. 
 Tests inserting at beginning and ends of arrays seem to be working.
