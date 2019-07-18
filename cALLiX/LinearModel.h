@@ -1,5 +1,7 @@
 #include <vector>
 #include <array>
+#include <list>
+#include <numeric>
 
 using namespace std;
 #pragma once

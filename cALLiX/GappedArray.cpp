@@ -1,6 +1,6 @@
 #include "GappedArray.h"
 
-GappedArray::GappedArray(LinearModel model, double minKey)
+GappedArray::GappedArray(LinearModel model, double minKey, int depth)
 {
 	keys = new array<double, ARRSIZE>;
 	keys->fill(minKey);
@@ -12,24 +12,24 @@ GappedArray::GappedArray(LinearModel model, double minKey)
 	numKeys = 1;
 	density = (double)1 / keysb->size();
 	MEDIND = (int) keysb->size() / 2;
-	MAXIND = (int) keysb->size() - 1;
+	MAXIND = (int) ARRSIZE - 1;
 	left = NULL;
 	right = NULL;
+	DEPTH = depth;
 }
 
-void GappedArray::insert(double key)
+bool GappedArray::insert(double key)
 {
 	if (!isLeaf) {
-		if (lm.y(key) < MEDIND) { left->insert(key); }
-		else { right->insert(key); }
-		return;
+		if (lm.y(key) < MEDIND) { return left->insert(key); }
+		else { return right->insert(key); }
 	}
 
 	int initPos = (int)lm.y(key);
 
 	/*check if in sorted order*/
 	int actPos = adjPos(key, initPos);
-	if ((*keys)[actPos] == key) return; // key already in keys
+	if ((*keys)[actPos] == key) return false; // key already in keys
 										
     /*can safely assume actPos is either the key immediately larger than key, the max position, the minimum position
 	or a gap in sorted order*/
@@ -118,6 +118,7 @@ void GappedArray::insert(double key)
 	numKeys = (*keysb).count();
 	density = (double)(*keysb).count() / (*keysb).size();
 	if (density > DENSITY) expand();
+	return true;
 }
 
 void GappedArray::expand()
@@ -132,6 +133,8 @@ void GappedArray::expand()
 	int rmin;
 	int rmax;
 
+	int sampled = 100 / SAMPLE_PERCENTAGE;
+
 	int m = (*keysb).count() / 2; //number
 	int i = 0;
 	int j = 0;
@@ -143,7 +146,7 @@ void GappedArray::expand()
 			else if (j == m) { rmin = i; MEDIND = i; }
 			else if (j == (*keysb).count()) { rmax = i; }
 
-			if (j % 20 == 1) { //approx 5% of keys
+			if (j % sampled == 1) { //approx SAMPLE_PERCENTAGE% of keys
 				if (j < m) {
 					leftx.push_back((*keys)[i]);
 					lefty.push_back(i);
@@ -169,8 +172,8 @@ void GappedArray::expand()
 	LinearModel llm = LinearModel(leftx, lefty_t);
 	LinearModel rlm = LinearModel(rightx, righty_t);
 
-	left = new GappedArray(llm, (*keys)[lmin]);
-	right = new GappedArray(rlm, (*keys)[rmin]);
+	left = new GappedArray(llm, (*keys)[lmin], DEPTH+1);
+	right = new GappedArray(rlm, (*keys)[rmin], DEPTH+1);
 
 	for (int k = 0; k < (*keys).size(); k++) {
 		if ((*keysb)[k]) {
@@ -184,7 +187,9 @@ void GappedArray::expand()
 	}
 
 	free(keys);
+	keys = NULL;
 	free(keysb);
+	keysb = NULL;
 	density = 0.0;
 	isLeaf = false;
 	return;
@@ -240,15 +245,20 @@ int GappedArray::binSearch(int lb, int ub, double key)
 	return lb;
 }
 
-
 GappedArray::~GappedArray() {
 	if (!isLeaf) {
 		left->~GappedArray();
-		right ->~GappedArray();
+		right->~GappedArray();
+		free(left);
+		left = NULL;
+		free(right);
+		right = NULL;
 		return;
 	}
 	free(keys);
+	keys = NULL;
 	free(keysb);
+	keysb = NULL;
 	return;
 }
 
@@ -257,13 +267,12 @@ bool GappedArray::lookup(double key)
 	if (!isLeaf) {
 		if ((int)lm.y(key) < MEDIND) return left->lookup(key);
 		else return right->lookup(key);
-		
 	}
 	int initPos = lm.y(key);
 	if (initPos < 0) initPos = 0;
 	if (initPos > MAXIND) initPos = MAXIND;
 	if ((*keys)[initPos] == key) return true;
-	int actPos = initPos;
+	int actPos = initPos; //exponential search for key
 	if (key > (*keys)[actPos]) {
 		int b = 1;
 		while (actPos + b <= MAXIND && key > (*keys)[actPos + b]) { b *= 2; }
@@ -280,7 +289,6 @@ bool GappedArray::lookup(double key)
 	return false;
 }
 
-
 void GappedArray::print(string outputloc)
 {
 	if (!isLeaf) {
@@ -294,6 +302,7 @@ void GappedArray::print(string outputloc)
 	
 	outfile << "Gapped Array Output\n";
 	outfile << "Linear Model\ty=" << lm.slope() << "x + " << lm.intercept() << "\n";
+	outfile << "Depth:\t" << DEPTH << "\n";
 	
 	int min = 0;
 	int max = MAXIND;
@@ -302,12 +311,9 @@ void GappedArray::print(string outputloc)
 	while (!(*keysb)[max]) max--;
 
 	
-	outfile << "Min Key:\t" << fixed << (*keys)[min] << "\tMax Key:\t" << fixed << (*keys)[max] << "\n";
+	outfile << "Min Key: " << fixed << (*keys)[min] << "\t\tMax Key: " << fixed << (*keys)[max] << "\n";
 	outfile << "Array in order:\t" << testOrder() << "\n";
-
-	outfile << "Number Keys:\t" << (*keysb).count() << "\n"; 
-
-
+	outfile << "Number Keys:\t" << (*keysb).count() << "\t\t" << "ARRSIZE:\t" << ARRSIZE << "\n"; 
 	outfile << "Bitset:\t\t" << keysb->to_string() << "\n";
 	for (int i = 0; i < keys->size(); i++) {
 		outfile << "Position " << i << "\t";
@@ -334,13 +340,14 @@ void GappedArray::printhead(string outputloc)
 	outfile.open(outputloc, ios::out | ofstream::app); // opens file named "filename" for output
 	outfile << "Gapped Array Output\n";
 	outfile << "Linear Model\ty=" << lm.slope() << "x + " << lm.intercept() << "\n";
+	outfile << "Depth:\t" << DEPTH << "\n";
 	int min = 0;
 	int max = MAXIND;
 	while (!(*keysb)[min]) min++;
 	while (!(*keysb)[max]) max--;
-	outfile << "Min Key:\t" << fixed << (*keys)[min] << "\tMax Key:\t" << fixed << (*keys)[max] << "\n";
+	outfile << "Min Key: " << fixed << (*keys)[min] << "\t\tMax Key: " << fixed << (*keys)[max] << "\n";
 	outfile << "Array in order:\t" << testOrder() << "\n";
-	outfile << "Number Keys:\t" << (*keysb).count() << "\n";
+	outfile << "Number Keys:\t" << (*keysb).count() << "\t\t" << "ARRSIZE:\t" << ARRSIZE << "\n";
 	outfile << "Bitset:\t\t" << keysb->to_string() << "\n";
 
 	outfile.close();
@@ -357,4 +364,248 @@ bool GappedArray::testOrder()
 		if ((*keys)[i] > (*keys)[i + 1]) return false;
 	}
 	return true;
+}
+
+int GappedArray::numLeaves()
+{
+	if (isLeaf) return 1;
+	return left->numLeaves() + right->numLeaves();
+}
+
+double GappedArray::avgLeafDepth()
+{
+	long totDepth = aldh();
+	int leaves = numLeaves();
+
+	return (double)totDepth / (double)leaves;
+}
+
+long GappedArray::aldh()
+{
+	if (isLeaf) return DEPTH;
+	return left->aldh() + right->aldh();
+}
+
+GA::GA()
+{
+	numKeys = 0;
+	root = NULL;
+	mmt = NULL;
+	lm = NULL;
+	initializing = true;
+	initSize = 50;
+	initkeys = new set<double>;
+}
+
+GA::GA(int initialSize)
+{
+	numKeys = 0;
+	root = NULL;
+	mmt = NULL;
+	lm = NULL;
+	initializing = true;
+	if (initialSize < 1) initialSize = 50;
+	initSize = initialSize;
+	initkeys = new set<double>;
+}
+
+GA::~GA()
+{
+	if (!initializing) {
+		root->~GappedArray();
+		free(root);
+		root = NULL;
+	}
+	free(initkeys);
+	initkeys = NULL;
+	free(lm);
+	lm = NULL;
+	free(mmt);
+	mmt = NULL;
+}
+
+bool GA::insert(double key)
+{
+	if (!initializing) {
+		bool success = root->insert(key);
+		if (success) numKeys++;
+		return success;
+	}
+	if (contains(key)) return false;
+	initkeys->insert(key);
+	numKeys++;
+	if (numKeys >= initSize) initialize();
+	return true;
+}
+
+void GA::insertFromFile(string inputloc)
+{
+	ifstream fin(inputloc);
+	if (!fin.is_open()) {
+		cout << "Input file at: " << inputloc << " could not be opened\n";
+		return;
+	}
+	double d = 0.0;
+	size_t keys = 0;
+	size_t fails = 0;
+	bool success = true;
+	while (fin >> d) {
+		success = insert(d);
+		if (!success) fails++;
+		keys++;
+	}
+	if (fails == 0) cout << "Successfully inserted all " << keys << " keys\n";
+	else cout << "Failed to insert " << fails << " / " << keys << " keys\n";
+}
+
+void GA::initialize()
+{
+	mmt = new MinMaxTransformer(0, initkeys->size() - 1, 0, ARRSIZE - 1);
+	vector<double> initx;
+	vector<int> inity;
+	double d = 0.0;
+	for (auto elem : (*initkeys)) {
+		initx.emplace_back(elem);
+		inity.emplace_back((int)mmt->y(d));
+		d++;
+	}
+	lm = new LinearModel(initx, inity);
+	root = new GappedArray((*lm), initx[0], 0);
+	for (size_t i = 1; i < initx.size(); i++) { root->insert(initx[i]); }
+	initializing = false;
+	free(initkeys);
+	initkeys = NULL;
+	free(mmt);
+	mmt = NULL;
+	free(lm);
+	lm = NULL;
+}
+
+int GA::count()
+{
+	return (int)numKeys;
+}
+
+bool GA::contains(double key)
+{
+	if (!initializing) return root->lookup(key);
+	return (initkeys->count(key) == 1);
+}
+
+void GA::testLookup(string inputloc)
+{
+	ifstream fin(inputloc);
+	if (!fin.is_open()) { cout << "Could not open file " << inputloc << "\n"; return; }
+	string s = "";
+	double d = 0.0;
+	size_t keys = 0;
+	size_t errors = 0;
+	while (fin >> s) {
+		d = textToDouble(s);
+		if (!contains(d)) {
+			cout << "Error finding key:\t" << std::numeric_limits<double>::digits10 + 2 << d << "\n";
+			errors++;
+		}
+		keys++;
+	}
+	cout << "Errors finding " << errors << " / " << keys << "  = " << ((double) errors / (double) keys)*100 << "% of keys\n";
+	fin.close();
+}
+void GA::testLookup(string inputloc, string outputloc)
+{
+	ifstream fin(inputloc);
+	if (!fin.is_open()) { cout << "Could not open file " << inputloc << "\n"; return; }
+	ofstream fo;// declaration of file pointer named outfile
+	fo.open(outputloc, ios::out | ofstream::app);
+	if (!fo.is_open()) { cout << "Weird error, should have been able to create an output file...\n"; fin.close(); return; }
+	string s = "";
+	double d = 0.0;
+	size_t keys = 0;
+	size_t errors = 0;
+	while (fin >> s) {
+		d = textToDouble(s);
+		if (!contains(d)) {
+			cout << "Error finding key:\t" << std::numeric_limits<double>::digits10 + 2 << d << "\n";
+			fo << std::numeric_limits<double>::digits10 + 2 << d << "\n";
+			errors++;
+		}
+		keys++;
+	}
+	cout << "Errors finding " << errors << " / " << keys << "  = " << ((double)errors / (double)keys) * 100 << "% of keys\n";
+	fin.close();
+	fo.close();
+}
+
+bool GA::sorted()
+{
+	if (!initializing) return root->testOrder();
+	return true; //a set is always sorted
+}
+
+int GA::numLeaves()
+{
+	if (!initializing) return root->numLeaves();
+	return 0;
+}
+
+double GA::avgLeafDepth()
+{
+	if (!initializing) return root->avgLeafDepth();
+	return 0.0;
+}
+
+double GA::avgKeysPerLeaf()
+{
+	if (initializing) return 0.0;
+	return (double)count() / numLeaves();
+}
+
+void GA::print(string outputloc)
+{
+	ofstream outfile;// declaration of file pointer named outfile
+	outfile.open(outputloc, ios::out | ofstream::app); // opens file named "filename" for output
+	outfile << "~~Overall GA Output~~\n";
+	outfile << "Total Number of Keys:\t" << count() << "\t\t";
+	outfile << "Total Number of Leaves:\t" << numLeaves() << "\n";
+	outfile << "Average Keys per Leaf:\t" << avgKeysPerLeaf() << "\n";
+	outfile << "Array Size: " << ARRSIZE << "\t\tMaximum Density: " << DENSITY << "\n";
+	outfile << "Average Leaf Depth:\t" << avgLeafDepth() << "\n";
+	outfile << "All GAs Sorted: " << sorted() << "\n\n";
+	if (initializing) {	
+		for (auto elem : (*initkeys)) { outfile << fixed << elem << "\n"; } 
+	}
+	outfile.close(); //always close outfile
+	if (!initializing) { root->print(outputloc); }
+}
+
+void GA::printhead(string outputloc)
+{
+	ofstream outfile;// declaration of file pointer named outfile
+	outfile.open(outputloc, ios::out | ofstream::app); // opens file named "filename" for output
+	outfile << "~~Overall GA Output~~\n";
+	outfile << "Total Number of Keys:\t" << count() << "\t\t";
+	outfile << "Total Number of Leaves:\t" << numLeaves() << "\n";
+	outfile << "Average Keys per Leaf:\t" << avgKeysPerLeaf() << "\n";
+	outfile << "Array Size: " << ARRSIZE << "\t\tMaximum Density: " << DENSITY << "\n";
+	outfile << "Average Leaf Depth:\t" << avgLeafDepth() << "\n";
+	outfile << "All GAs Sorted: " << sorted() << "\n\n";
+	outfile.close(); //always close outfile
+	if (!initializing) { root->printhead(outputloc); }
+}
+
+void GA::info()
+{
+	cout << "\n";
+	cout << "~~Overall GA Information~~\n";
+	cout << "Total Number of Keys:\t" << count() << "\t\t";
+	cout << "Total Number of Leaves:\t" << numLeaves() << "\n";
+	cout << "Average Keys per Leaf:\t" << avgKeysPerLeaf() << "\n";
+	cout << "Array Size: " << ARRSIZE << "\t\tMaximum Density: " << DENSITY << "\n";
+	cout << "Average Leaf Depth:\t" << avgLeafDepth() << "\n";
+	cout << "All GAs Sorted: " << sorted() << "\n\n";
+}
+
+double GA::textToDouble(const std::string& str)
+{
+	return strtod(str.c_str(), NULL);
 }

@@ -3,11 +3,10 @@
 LinearModel::LinearModel() : a(0), b(0) {};
 LinearModel::LinearModel(double A, double B) : a(A), b(B) {};
 LinearModel::LinearModel(vector<double> samplekeys, vector<int> sampleindices) {
-	if (samplekeys.size() == 1) { a = 0.0; b = 0.0; return;	}
+	if (samplekeys.size() == 1) { a = 1.0; b = 0.0; return;	}
 	double xbar = 0.0;
 	double ybar = 0.0;
-	int i;
-	for (i = 0; i < samplekeys.size(); i++) {
+	for (size_t i = 0; i < samplekeys.size(); i++) {
 		xbar += samplekeys[i];
 		ybar += sampleindices[i];
 	}
@@ -15,7 +14,7 @@ LinearModel::LinearModel(vector<double> samplekeys, vector<int> sampleindices) {
 	ybar = ybar / (double)samplekeys.size();
 	double top = 0.0;
 	double bot = 0.0;
-	for (i = 0; i < samplekeys.size(); i++) {
+	for (size_t i = 0; i < samplekeys.size(); i++) {
 		top += (samplekeys[i] - xbar) * (sampleindices[i] - ybar);
 		bot += (samplekeys[i] - xbar) * (samplekeys[i] - xbar);
 	}
