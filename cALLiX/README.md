@@ -1,6 +1,12 @@
 cALLiX - c Adaptive Linear Learned indeX
 
-Current Writeup -- 7/17/19
+Current Writeup -- 7/18/19
+
+Wow got a TON done last night. Enabled cold start, wrote a "wrapper" class to GappedArray, made a whole buncha tools for testing as well as generating keys of uniform and multimodal distributions. 
+
+What's interesting is, approximately 1% of lookups/contains are failing. This opens up several avenues to approach. Maybe the lookup algorithm itself is off, or maybe this is the result of probabilistic computing and should actually be applauded. If just a few keys are not showing up, maybe a strongLookup method can be implemented that kicks in only in those specific circumstances, and searches neighboring GAs for a key in a more robust way. Maybe something like a bloom filter. I'm still interested as well in implementing a CompressionNode that exists orthogonally to this structure and perhaps points directly to the parent of the leaf arrays. 
+
+7/17/19
 
 Generated a million+-key normal distribution with mean 0 and stddeviation 100. Implemented a print(outfile) class which dumps "header" information about each gapped array as well as all the keys, positions, and bits for each entry in the array.
 
